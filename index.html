@@ -9,7 +9,14 @@
   <body>
     <main id="app">
       <h1>Spell-Spiff — Rune Recognition Harness</h1>
-      <p id="status">Harness scaffold ready.</p>
+      <div id="stage">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div id="hud">
+          <span id="fps">FPS: --</span>
+        </div>
+      </div>
+      <p id="status">Starting camera…</p>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
