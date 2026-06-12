@@ -7,7 +7,19 @@ const fpsEl = document.getElementById('fps');
 const inferEl = document.getElementById('infer');
 const statusEl = document.getElementById('status');
 
+const pinchRatioEl = document.getElementById('pinch-ratio');
+const penIndicatorEl = document.getElementById('pen-indicator');
+const thresholdInput = document.getElementById('pinch-threshold');
+const thresholdValueEl = document.getElementById('pinch-threshold-value');
+
+const WRIST = 0;
+const THUMB_TIP = 4;
 const INDEX_TIP = 8;
+const MIDDLE_MCP = 9;
+
+// Release threshold sits above the pinch threshold so the pen state
+// doesn't flicker when the ratio hovers at the boundary.
+const HYSTERESIS = 1.25;
 
 // Landmark connections for drawing the hand skeleton
 const CONNECTIONS = [
@@ -24,6 +36,36 @@ let frameCount = 0;
 let fpsWindowStart = performance.now();
 let lastVideoTime = -1;
 let landmarker = null;
+let penDown = false;
+
+thresholdInput.addEventListener('input', () => {
+  thresholdValueEl.textContent = Number(thresholdInput.value).toFixed(2);
+});
+
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+// Pinch ratio: thumb-tip-to-index-tip distance normalized by hand size
+// (wrist to middle MCP), so it holds across distances from the camera.
+function pinchRatio(landmarks) {
+  const handSize = dist(landmarks[WRIST], landmarks[MIDDLE_MCP]);
+  if (handSize === 0) return Infinity;
+  return dist(landmarks[THUMB_TIP], landmarks[INDEX_TIP]) / handSize;
+}
+
+function updatePenState(landmarks) {
+  const ratio = pinchRatio(landmarks);
+  const threshold = Number(thresholdInput.value);
+  if (penDown) {
+    if (ratio > threshold * HYSTERESIS) penDown = false;
+  } else if (ratio < threshold) {
+    penDown = true;
+  }
+  pinchRatioEl.textContent = `Pinch: ${ratio.toFixed(2)}`;
+  penIndicatorEl.textContent = penDown ? 'PEN DOWN' : 'PEN UP';
+  penIndicatorEl.className = penDown ? 'pen-down' : 'pen-up';
+}
 
 async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -75,7 +117,14 @@ function renderLoop() {
     const result = landmarker.detectForVideo(video, performance.now());
     inferEl.textContent = `Infer: ${(performance.now() - t0).toFixed(1)} ms`;
     if (result.landmarks.length > 0) {
-      drawHand(result.landmarks[0]);
+      const landmarks = result.landmarks[0];
+      updatePenState(landmarks);
+      drawHand(landmarks);
+    } else {
+      penDown = false;
+      penIndicatorEl.textContent = 'PEN UP';
+      penIndicatorEl.className = 'pen-up';
+      pinchRatioEl.textContent = 'Pinch: --';
     }
   }
 

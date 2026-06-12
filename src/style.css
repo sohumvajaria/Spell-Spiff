@@ -39,6 +39,41 @@ h1 {
   height: 100%;
 }
 
+#pen-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+#pen-indicator.pen-down {
+  background: #ff3b6b;
+  color: #fff;
+}
+
+#pen-indicator.pen-up {
+  background: rgba(0, 0, 0, 0.55);
+  color: #aaa;
+}
+
+#controls {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+#controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 #hud {
   position: absolute;
   top: 0.5rem;

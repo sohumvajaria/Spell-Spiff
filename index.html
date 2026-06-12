@@ -15,7 +15,16 @@
         <div id="hud">
           <span id="fps">FPS: --</span>
           <span id="infer">Infer: -- ms</span>
+          <span id="pinch-ratio">Pinch: --</span>
         </div>
+        <div id="pen-indicator" class="pen-up">PEN UP</div>
+      </div>
+      <div id="controls">
+        <label>
+          Pinch threshold
+          <input id="pinch-threshold" type="range" min="0.05" max="0.8" step="0.01" value="0.35" />
+          <span id="pinch-threshold-value">0.35</span>
+        </label>
       </div>
       <p id="status">Starting camera…</p>
     </main>
