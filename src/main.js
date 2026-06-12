@@ -1,5 +1,6 @@
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 import { Recognizer } from './recognizer.js';
+import { loadTemplates, saveTemplates, exportTemplates, importTemplates } from './templates.js';
 
 const video = document.getElementById('video');
 const overlay = document.getElementById('overlay');
@@ -45,7 +46,90 @@ let strokePoints = [];
 const pointCountEl = document.getElementById('point-count');
 const matchEl = document.getElementById('match');
 
-const recognizer = new Recognizer(); // template set starts empty
+const recognizer = new Recognizer();
+
+// --- Train mode ---
+const runeNameInput = document.getElementById('rune-name');
+const trainToggleBtn = document.getElementById('train-toggle');
+const trainStatusEl = document.getElementById('train-status');
+const runeListEl = document.getElementById('rune-list');
+const exportBtn = document.getElementById('export-btn');
+const importInput = document.getElementById('import-input');
+
+let templates = loadTemplates();
+let training = false;
+let trainingRune = '';
+
+function rebuildRecognizer() {
+  recognizer.templates = [];
+  for (const [name, samples] of Object.entries(templates)) {
+    for (const sample of samples) recognizer.addTemplate(name, sample);
+  }
+}
+
+function renderRuneList() {
+  runeListEl.innerHTML = '';
+  for (const [name, samples] of Object.entries(templates)) {
+    const li = document.createElement('li');
+    const label = document.createElement('span');
+    label.textContent = `${name} — ${samples.length} sample${samples.length === 1 ? '' : 's'}`;
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.addEventListener('click', () => {
+      delete templates[name];
+      saveTemplates(templates);
+      rebuildRecognizer();
+      renderRuneList();
+    });
+    li.append(label, del);
+    runeListEl.appendChild(li);
+  }
+}
+
+trainToggleBtn.addEventListener('click', () => {
+  if (training) {
+    training = false;
+    trainToggleBtn.textContent = 'Start training';
+    trainStatusEl.textContent = '';
+    return;
+  }
+  const name = runeNameInput.value.trim();
+  if (!name) {
+    trainStatusEl.textContent = 'Type a rune name first.';
+    return;
+  }
+  training = true;
+  trainingRune = name;
+  trainToggleBtn.textContent = 'Stop training';
+  trainStatusEl.textContent = `Recording samples for "${name}" — draw with pinch.`;
+});
+
+exportBtn.addEventListener('click', () => {
+  const blob = new Blob([exportTemplates(templates)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'spell-spiff-templates.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+importInput.addEventListener('change', async () => {
+  const file = importInput.files[0];
+  if (!file) return;
+  try {
+    templates = importTemplates(templates, await file.text());
+    saveTemplates(templates);
+    rebuildRecognizer();
+    renderRuneList();
+    trainStatusEl.textContent = 'Import complete.';
+  } catch (err) {
+    trainStatusEl.textContent = `Import failed: ${err.message}`;
+  }
+  importInput.value = '';
+});
+
+rebuildRecognizer();
+renderRuneList();
 
 thresholdInput.addEventListener('input', () => {
   thresholdValueEl.textContent = Number(thresholdInput.value).toFixed(2);
@@ -94,6 +178,19 @@ function onStrokeStart() {
 
 function onStrokeEnd() {
   // The finished stroke stays visible until the next stroke starts.
+  if (strokePoints.length < 5) return; // ignore accidental taps
+
+  if (training) {
+    templates[trainingRune] = templates[trainingRune] || [];
+    templates[trainingRune].push(strokePoints.map((p) => ({ x: p.x, y: p.y })));
+    saveTemplates(templates);
+    recognizer.addTemplate(trainingRune, strokePoints);
+    renderRuneList();
+    trainStatusEl.textContent =
+      `Recorded sample ${templates[trainingRune].length} for "${trainingRune}".`;
+    return;
+  }
+
   const result = recognizer.recognize(strokePoints);
   if (result) {
     matchEl.textContent =

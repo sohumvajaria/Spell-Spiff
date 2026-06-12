@@ -28,6 +28,22 @@
           <span id="pinch-threshold-value">0.35</span>
         </label>
       </div>
+      <section id="train-panel">
+        <h2>Train</h2>
+        <div class="row">
+          <input id="rune-name" type="text" placeholder="Rune name" />
+          <button id="train-toggle">Start training</button>
+          <span id="train-status"></span>
+        </div>
+        <ul id="rune-list"></ul>
+        <div class="row">
+          <button id="export-btn">Export JSON</button>
+          <label class="file-label">
+            Import JSON
+            <input id="import-input" type="file" accept="application/json" hidden />
+          </label>
+        </div>
+      </section>
       <p id="status">Starting camera…</p>
     </main>
     <script type="module" src="/src/main.js"></script>
