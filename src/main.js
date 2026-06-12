@@ -80,6 +80,10 @@ function renderRuneList() {
       saveTemplates(templates);
       rebuildRecognizer();
       renderRuneList();
+      if (drilling) {
+        if (Object.keys(templates).length === 0) drillToggleBtn.click();
+        else if (drillTarget === name) pickDrillTarget();
+      }
     });
     li.append(label, del);
     runeListEl.appendChild(li);
@@ -98,6 +102,7 @@ trainToggleBtn.addEventListener('click', () => {
     trainStatusEl.textContent = 'Type a rune name first.';
     return;
   }
+  if (drilling) drillToggleBtn.click(); // drill and train are exclusive
   training = true;
   trainingRune = name;
   trainToggleBtn.textContent = 'Stop training';
@@ -130,6 +135,94 @@ importInput.addEventListener('change', async () => {
 
 rebuildRecognizer();
 renderRuneList();
+
+// --- Drill mode ---
+const drillToggleBtn = document.getElementById('drill-toggle');
+const drillResetBtn = document.getElementById('drill-reset');
+const drillTargetEl = document.getElementById('drill-target');
+const drillStatsEl = document.getElementById('drill-stats');
+const drillAccuracyEl = document.getElementById('drill-accuracy');
+const confusionEl = document.getElementById('confusion');
+
+let drilling = false;
+let drillTarget = null;
+let drillCorrect = 0;
+let drillTotal = 0;
+let confusion = {}; // { targetRune: { matchedRune: count } }
+
+function pickDrillTarget() {
+  const names = Object.keys(templates);
+  drillTarget = names[Math.floor(Math.random() * names.length)];
+  drillTargetEl.textContent = `Draw: ${drillTarget}`;
+}
+
+function renderDrillStats() {
+  if (drillTotal === 0) {
+    drillStatsEl.textContent = 'No attempts yet.';
+    drillAccuracyEl.textContent = 'Drill: --';
+    confusionEl.innerHTML = '';
+    return;
+  }
+  const pct = ((drillCorrect / drillTotal) * 100).toFixed(1);
+  drillStatsEl.textContent = `${drillCorrect}/${drillTotal} correct (${pct}%)`;
+  drillAccuracyEl.textContent = `Drill: ${pct}%`;
+
+  const rows = [];
+  for (const [target, matches] of Object.entries(confusion)) {
+    for (const [matched, count] of Object.entries(matches)) {
+      if (matched !== target) rows.push({ target, matched, count });
+    }
+  }
+  rows.sort((a, b) => b.count - a.count);
+  confusionEl.innerHTML = rows.length === 0 ? '<p>No confusions yet.</p>' : '';
+  if (rows.length > 0) {
+    const table = document.createElement('table');
+    table.innerHTML = '<tr><th>Target</th><th>Mistaken for</th><th>Count</th></tr>';
+    for (const row of rows) {
+      const tr = document.createElement('tr');
+      for (const v of [row.target, row.matched, row.count]) {
+        const td = document.createElement('td');
+        td.textContent = v;
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    confusionEl.appendChild(table);
+  }
+}
+
+function recordDrillAttempt(matchedName) {
+  drillTotal++;
+  if (matchedName === drillTarget) drillCorrect++;
+  confusion[drillTarget] = confusion[drillTarget] || {};
+  confusion[drillTarget][matchedName] = (confusion[drillTarget][matchedName] || 0) + 1;
+  renderDrillStats();
+  pickDrillTarget();
+}
+
+drillToggleBtn.addEventListener('click', () => {
+  if (drilling) {
+    drilling = false;
+    drillToggleBtn.textContent = 'Start drill';
+    drillTargetEl.textContent = '';
+    return;
+  }
+  if (Object.keys(templates).length === 0) {
+    drillTargetEl.textContent = 'Train at least one rune first.';
+    return;
+  }
+  if (training) trainToggleBtn.click(); // drill and train are exclusive
+  drilling = true;
+  drillToggleBtn.textContent = 'Stop drill';
+  pickDrillTarget();
+});
+
+drillResetBtn.addEventListener('click', () => {
+  drillCorrect = 0;
+  drillTotal = 0;
+  confusion = {};
+  renderDrillStats();
+});
 
 thresholdInput.addEventListener('input', () => {
   thresholdValueEl.textContent = Number(thresholdInput.value).toFixed(2);
@@ -195,6 +288,7 @@ function onStrokeEnd() {
   if (result) {
     matchEl.textContent =
       `Match: ${result.name} (${result.score.toFixed(2)}, ${result.timeMs.toFixed(1)} ms)`;
+    if (drilling) recordDrillAttempt(result.name);
   } else {
     matchEl.textContent = 'Match: no templates';
   }

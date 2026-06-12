@@ -138,6 +138,25 @@ button:hover,
   font-size: 0.85rem;
 }
 
+#drill-target {
+  color: #00ffa0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+#confusion table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+#confusion th,
+#confusion td {
+  border: 1px solid #333;
+  padding: 0.25rem 0.75rem;
+  text-align: left;
+}
+
 #hud {
   position: absolute;
   top: 0.5rem;

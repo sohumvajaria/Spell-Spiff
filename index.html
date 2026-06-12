@@ -18,6 +18,7 @@
           <span id="pinch-ratio">Pinch: --</span>
           <span id="point-count">Points: 0</span>
           <span id="match">Match: --</span>
+          <span id="drill-accuracy">Drill: --</span>
         </div>
         <div id="pen-indicator" class="pen-up">PEN UP</div>
       </div>
@@ -43,6 +44,18 @@
             <input id="import-input" type="file" accept="application/json" hidden />
           </label>
         </div>
+      </section>
+      <section id="drill-panel">
+        <h2>Drill</h2>
+        <div class="row">
+          <button id="drill-toggle">Start drill</button>
+          <button id="drill-reset">Reset stats</button>
+          <span id="drill-target"></span>
+        </div>
+        <div class="row">
+          <span id="drill-stats">No attempts yet.</span>
+        </div>
+        <div id="confusion"></div>
       </section>
       <p id="status">Starting camera…</p>
     </main>
