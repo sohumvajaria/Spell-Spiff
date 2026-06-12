@@ -36,7 +36,12 @@ let frameCount = 0;
 let fpsWindowStart = performance.now();
 let lastVideoTime = -1;
 let landmarker = null;
+let lastLandmarks = null;
 let penDown = false;
+
+// Current stroke: index fingertip positions in overlay pixel coordinates
+let strokePoints = [];
+const pointCountEl = document.getElementById('point-count');
 
 thresholdInput.addEventListener('input', () => {
   thresholdValueEl.textContent = Number(thresholdInput.value).toFixed(2);
@@ -55,6 +60,7 @@ function pinchRatio(landmarks) {
 }
 
 function updatePenState(landmarks) {
+  const wasDown = penDown;
   const ratio = pinchRatio(landmarks);
   const threshold = Number(thresholdInput.value);
   if (penDown) {
@@ -65,6 +71,40 @@ function updatePenState(landmarks) {
   pinchRatioEl.textContent = `Pinch: ${ratio.toFixed(2)}`;
   penIndicatorEl.textContent = penDown ? 'PEN DOWN' : 'PEN UP';
   penIndicatorEl.className = penDown ? 'pen-down' : 'pen-up';
+
+  if (penDown && !wasDown) onStrokeStart();
+  if (penDown) {
+    strokePoints.push({
+      x: landmarks[INDEX_TIP].x * overlay.width,
+      y: landmarks[INDEX_TIP].y * overlay.height,
+    });
+    pointCountEl.textContent = `Points: ${strokePoints.length}`;
+  }
+  if (!penDown && wasDown) onStrokeEnd();
+}
+
+function onStrokeStart() {
+  strokePoints = [];
+  pointCountEl.textContent = 'Points: 0';
+}
+
+function onStrokeEnd() {
+  // Recognition hooks in here later; the finished stroke stays visible
+  // until the next stroke starts.
+}
+
+function drawStroke() {
+  if (strokePoints.length < 2) return;
+  ctx.strokeStyle = '#ffd24a';
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(strokePoints[0].x, strokePoints[0].y);
+  for (let i = 1; i < strokePoints.length; i++) {
+    ctx.lineTo(strokePoints[i].x, strokePoints[i].y);
+  }
+  ctx.stroke();
 }
 
 async function startCamera() {
@@ -117,16 +157,21 @@ function renderLoop() {
     const result = landmarker.detectForVideo(video, performance.now());
     inferEl.textContent = `Infer: ${(performance.now() - t0).toFixed(1)} ms`;
     if (result.landmarks.length > 0) {
-      const landmarks = result.landmarks[0];
-      updatePenState(landmarks);
-      drawHand(landmarks);
+      lastLandmarks = result.landmarks[0];
+      updatePenState(lastLandmarks);
     } else {
+      lastLandmarks = null;
+      if (penDown) onStrokeEnd();
       penDown = false;
       penIndicatorEl.textContent = 'PEN UP';
       penIndicatorEl.className = 'pen-up';
       pinchRatioEl.textContent = 'Pinch: --';
     }
   }
+
+  if (lastLandmarks) drawHand(lastLandmarks);
+
+  drawStroke();
 
   frameCount++;
   const now = performance.now();
