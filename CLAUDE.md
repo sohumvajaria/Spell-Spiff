@@ -51,8 +51,9 @@ build two separate games.
 
 ## CURRENT PHASE
 
-Recognition harness only. Prove a webcam tells eight to ten runes apart, fast
-and clean, before any game logic. No spells, no health, no networking yet.
+Building the 1v1 duel logic behind an input abstraction. Casting is driven by
+keyboard for now. The rune recognizer is pending validation and gets plugged
+in later as another input adapter emitting the same cast-intent events.
 
 ## GUARDRAILS
 
