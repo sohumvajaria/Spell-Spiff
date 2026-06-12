@@ -1,4 +1,5 @@
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+import { Recognizer } from './recognizer.js';
 
 const video = document.getElementById('video');
 const overlay = document.getElementById('overlay');
@@ -42,6 +43,9 @@ let penDown = false;
 // Current stroke: index fingertip positions in overlay pixel coordinates
 let strokePoints = [];
 const pointCountEl = document.getElementById('point-count');
+const matchEl = document.getElementById('match');
+
+const recognizer = new Recognizer(); // template set starts empty
 
 thresholdInput.addEventListener('input', () => {
   thresholdValueEl.textContent = Number(thresholdInput.value).toFixed(2);
@@ -89,8 +93,14 @@ function onStrokeStart() {
 }
 
 function onStrokeEnd() {
-  // Recognition hooks in here later; the finished stroke stays visible
-  // until the next stroke starts.
+  // The finished stroke stays visible until the next stroke starts.
+  const result = recognizer.recognize(strokePoints);
+  if (result) {
+    matchEl.textContent =
+      `Match: ${result.name} (${result.score.toFixed(2)}, ${result.timeMs.toFixed(1)} ms)`;
+  } else {
+    matchEl.textContent = 'Match: no templates';
+  }
 }
 
 function drawStroke() {
